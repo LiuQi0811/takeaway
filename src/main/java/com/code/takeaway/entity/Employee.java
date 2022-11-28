@@ -68,13 +68,13 @@ public class Employee implements Serializable {
      * 创建人
      */
     @TableField(fill = FieldFill.INSERT)
-    private String createUser;
+    private Long createUser;
 
     /**
      * 修改人
      */
     @TableField(fill = FieldFill.INSERT_UPDATE)
-    private String updateUser;
+    private Long updateUser;
 
 
 }
