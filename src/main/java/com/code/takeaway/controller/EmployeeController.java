@@ -89,7 +89,7 @@ public class EmployeeController {
         log.info(" 获取session中保存的当前登录员工的id " + id);
         //根据 session中保存的当前登录员工的id 获取用户信息
         LambdaQueryWrapper<Employee> employeeQueryWrapper = new LambdaQueryWrapper<>();
-        employeeQueryWrapper.eq(Employee::getId, id);
+        employeeQueryWrapper.eq(Employee::getCreateUser, id);
         Employee employee = employeeService.getOne(employeeQueryWrapper);
         if (employee == null) {
             return R.error("没有获取到该员工信息");
