@@ -11,17 +11,17 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 员工实体类
- *
  * @author LiuQi
  * @version 1.0
- * @data 2022/11/23 17:38
+ * @data 2022/12/2 11:28
+ * 分类类目实体类
  */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Employee implements Serializable {
+public class Category implements Serializable
+{
     private static final long serialVersionUID = 1L;
 
     /**
@@ -29,33 +29,18 @@ public class Employee implements Serializable {
      */
     private Long id;
     /**
-     * 姓名
+     * 类型 1 菜品分类 2 套餐分类
+     */
+    private Integer type;
+    /**
+     * 分类名称
      */
     private String name;
     /**
-     * 用户名
+     * 排序
      */
-    private String username;
-    /**
-     * 密码
-     */
-    private String password;
-    /**
-     * 手机号
-     */
-    private String phone;
-    /**
-     * 性别
-     */
-    private String sex;
-    /**
-     * 身份证号码
-     */
-    private String idNumber;
-    /**
-     * 禁用状态 0禁用 1正常
-     */
-    private Integer status;
+    private Integer sort;
+
     /**
      * 创建时间
      */
@@ -77,6 +62,4 @@ public class Employee implements Serializable {
      */
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private Long updateUser;
-
-
 }
