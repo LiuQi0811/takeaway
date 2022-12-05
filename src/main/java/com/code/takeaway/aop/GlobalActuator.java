@@ -1,15 +1,22 @@
 package com.code.takeaway.aop;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.code.takeaway.entity.CountApi;
+import com.code.takeaway.mapper.CountApiMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -22,9 +29,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @Aspect
 @Slf4j
 public class GlobalActuator {
+    @Resource
+    private CountApiMapper apiMapper;
     ThreadLocal<Long> startTime = new ThreadLocal<>();
-    ConcurrentHashMap<Object, Object> countMap = new ConcurrentHashMap<Object, Object>();
-
     /**
      * 匹配控制层层通知 这里监控controller下的所有接口
      */
@@ -33,58 +40,61 @@ public class GlobalActuator {
         log.debug("匹配控制层层通知 这里监控controller下的所有接口......");
     }
 
+    /**
+     * 在接口原有的方法执行前，将会首先执行此处的代码
+     *
+     * @param joinPoint
+     */
     @Before("allController()")
-    public void doBefore(JoinPoint joinPoint){
+    public void doBefore(JoinPoint joinPoint) {
         startTime.set(System.currentTimeMillis());
-        Object[] args = joinPoint.getArgs(); // 获取传入目标方法的参数
+        joinPoint.getArgs(); // 获取传入目标方法的参数
+        log.info("获取传入目标方法的参数...{}", joinPoint.getArgs());
     }
 
     /**
      * 只有正常返回才会执行此方法
      * 如果程序执行失败，则不执行此方法
      *
-     * @param joinPoint
      * @param returnVal
      */
     @AfterReturning(returning = "returnVal", pointcut = "allController()")
-    public void doAfterReturning(JoinPoint joinPoint, Object returnVal) throws Throwable {
-        Signature signature = joinPoint.getSignature();
-        String declaringName = signature.getDeclaringTypeName();
-        String methodName = signature.getName();
-        String mapKey = declaringName + methodName;
-        log.debug(mapKey);
+    public synchronized void doAfterReturning(Object returnVal) {
+        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        log.info(" api 名称 " + request.getRequestURI());
+        // 获取接口请求信息
+        CountApi countApi = this.queryCountApiInfoByApi(request.getRequestURI());
+        log.info("获取接口请求信息  {}", JSON.toJSON(countApi));
         // 执行成功则计数加一
         int increase = AtomicCount.getInstance().increase();
-        log.debug("执行成功则计数加一 结果{}",increase);
-        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-        synchronized (this) {
-            //在项目启动时，需要在Redis中读取原有的接口请求次数
-//            if (countMap.size() == 0) {
-//                JSONObject jsonObject = RedisUtils.objFromRedis(StringConst.INTERFACE_ACTUATOR);
-//                if (jsonObject != null) {
-//                    Set<String> strings = jsonObject.keySet();
-//                    for (String string : strings) {
-//                        Object o = jsonObject.get(string);
-//                        countMap.putIfAbsent(string, o);
-//                    }
-//                }
-//            }
+        if (countApi == null) {
+            CountApi data = CountApi.builder()
+                    .id(UUID.randomUUID().toString())
+                    .api(request.getRequestURI())
+                    .num(Integer.toUnsignedLong(increase))
+                    .build();
+            apiMapper.insert(data);
+        } else {
+
+            CountApi  data = null;
+            if (increase == 1) { //为了防止 重新部署 重启项目 重新赋值进行判断
+                  data = CountApi.builder()
+                        .id(countApi.getId())
+                        .num(countApi.getNum()+Integer.toUnsignedLong(increase))
+                        .build();
+            } else {
+                  data = CountApi.builder()
+                        .id(countApi.getId())
+                        .num(countApi.getNum()+1)
+                        .build();
+            }
+            apiMapper.updateById(data);
+
         }
-        // 如果此次访问的接口不在countMap，放入countMap
-        countMap.putIfAbsent(mapKey, 0);
-        countMap.compute(mapKey, (key, value) -> (Integer) value + 1);
-        synchronized (this) {
-            // 内存计数达到30 更新redis
-//            if (increase == 30) {
-//                RedisUtils.objToRedis(StringConst.INTERFACE_ACTUATOR, countMap, Constants.AVA_REDIS_TIMEOUT);
-//                //删除过期时间
-//                stringRedisTemplate.persist(StringConst.INTERFACE_ACTUATOR);
-//                //计数器置为0
-//                AtomicCounter.getInstance().toZero();
-//            }
-        }
-        //log.info("方法执行次数:" + mapKey + "------>" + countMap.get(mapKey));
-        //log.info("URI:[{}], 耗费时间:[{}] ms", request.getRequestURI(), System.currentTimeMillis() - startTime.get());
+
+        log.info("api请求成功加一 结果 {} 第{}次", request.getRequestURI(), increase);
+
+
     }
 
     /**
@@ -95,4 +105,19 @@ public class GlobalActuator {
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
         log.info("接口访问失败，URI:[{}], 耗费时间:[{}] ms", request.getRequestURI(), System.currentTimeMillis() - startTime.get());
     }
+
+
+    /**
+     * 根据 api 获取信息
+     *
+     * @param api
+     * @return
+     */
+    private CountApi queryCountApiInfoByApi(String api) {
+        LambdaQueryWrapper<CountApi> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(CountApi::getApi, api);
+        return apiMapper.selectOne(queryWrapper);
+    }
+
+
 }

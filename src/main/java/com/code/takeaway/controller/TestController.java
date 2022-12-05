@@ -17,7 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 @RequestMapping(value = "/test")
 public class TestController {
 
-    @RequestMapping(value = "/message",method = RequestMethod.GET)
+    @RequestMapping(value = "/msg",method = RequestMethod.GET)
     public String message(HttpServletResponse response){
         response.setCharacterEncoding("UTF8");
         return "Hello World";
