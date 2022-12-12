@@ -12,11 +12,14 @@ spring:
 
 #  RabbitMQ 基础配置
   rabbitmq:
-    host: 172.16.100.26 # 地址
-    port: 5673 # 端口号
-    username: guest #用户名
-    password: guest #密码
+    host: 192.168.5.12 # 地址
+    port: 5672 # 端口号
+    username: admin #用户名
+    password: admin #密码
     virtual-host: /
+    listener:
+      simple:
+        prefetch: 1 #设置prefetch 控制欲取消息 上限
 
 
 mybatis-plus:

@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  * @version 1.0
  * @data 2022/12/9 15:16
  */
-@Component
+//@Component
 @RabbitListener(queuesToDeclare = @Queue(value = "hello"))
 @Slf4j
 public class HelloCustomer {

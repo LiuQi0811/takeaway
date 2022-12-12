@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
  * @version 1.0
  * @data 2022/12/9 16:44
  */
-@Component
+//@Component
 @Slf4j
 public class TopicCustomer
 {

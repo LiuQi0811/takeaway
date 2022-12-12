@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  * @data 2022/12/9 16:26
  */
 @Slf4j
-@Component
+//@Component
 public class RouteCustomer {
     @RabbitListener(
             bindings = {
