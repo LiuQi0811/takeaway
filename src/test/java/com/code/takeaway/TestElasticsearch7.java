@@ -38,7 +38,7 @@ public class TestElasticsearch7 {
     @Test
     public void testCreate() throws Exception {
         ElasticsearchClient client = ElasticSearchClientPool.getClient(); //获取连接对象
-        Boolean acknowledged = client.indices().create(val -> val.index(INDEX_HOTEL)).acknowledged();
+        Boolean acknowledged = client.indices().create(val -> val.index("user")).acknowledged();
         log.info("创建索引返回状态 {}",acknowledged);
         ElasticSearchClientPool.backReturnClient(client);//归还连接对象
     }
