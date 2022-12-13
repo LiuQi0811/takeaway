@@ -5,8 +5,11 @@ import co.elastic.clients.elasticsearch._types.mapping.IntegerNumberProperty;
 import co.elastic.clients.elasticsearch._types.mapping.Property;
 import co.elastic.clients.elasticsearch._types.mapping.TextProperty;
 import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
+import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.core.IndexResponse;
 import co.elastic.clients.elasticsearch.core.UpdateResponse;
+import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
+import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
 import co.elastic.clients.elasticsearch.indices.*;
 import co.elastic.clients.elasticsearch.indices.get_alias.IndexAliases;
 import com.code.takeaway.pool.ElasticSearchClientPool;
@@ -305,29 +308,30 @@ public class CommonInterfaceMethodsEs8 {
 
     /**
      * 新增文档信息
+     *
      * @param indexName
      * @param o
      * @return
      * @throws Exception
      */
-    public Long createDocument(String indexName,Object o) throws Exception
-    {
+    public Long createDocument(String indexName, Object o) throws Exception {
         ElasticsearchClient elasticsearchClient = ElasticSearchClientPool.getClient();
         IndexResponse indexResponse = elasticsearchClient.index(item -> item.index(indexName).document(o));
         long version = indexResponse.version();
         ElasticSearchClientPool.backReturnClient(elasticsearchClient);
-        return  version;
+        return version;
     }
 
     /**
-     *  新增文档信息 指定id
+     * 新增文档信息 指定id
+     *
      * @param indexName
      * @param id
      * @param o
      * @return
      * @throws Exception
      */
-    public Long createDocument(String indexName,String id,Object o) throws Exception {
+    public Long createDocument(String indexName, String id, Object o) throws Exception {
         ElasticsearchClient elasticsearchClient = ElasticSearchClientPool.getClient();
         IndexResponse indexResponse = elasticsearchClient
                 .index(item -> item
@@ -336,18 +340,19 @@ public class CommonInterfaceMethodsEs8 {
                         .document(o));
         long version = indexResponse.version();
         ElasticSearchClientPool.backReturnClient(elasticsearchClient);
-        return  version;
+        return version;
     }
 
     /**
      * 修改文档自定义属性
+     *
      * @param indexName
      * @param id
      * @param o
      * @return
      * @throws Exception
      */
-    public Long updateDocument(String indexName,String id,Object o) throws Exception{
+    public Long updateDocument(String indexName, String id, Object o) throws Exception {
         ElasticsearchClient elasticsearchClient = ElasticSearchClientPool.getClient();
         UpdateResponse<Object> updateResponse = elasticsearchClient.update(x -> x
                 .index(indexName)
@@ -355,7 +360,137 @@ public class CommonInterfaceMethodsEs8 {
                 .doc(o), Object.class);
         long version = updateResponse.version();
         ElasticSearchClientPool.backReturnClient(elasticsearchClient);
-        return  version;
+        return version;
+    }
+
+    /**
+     * bulk批量插入
+     *
+     * @param indexName
+     * @param objects
+     * @return
+     * @throws Exception
+     */
+    public List<BulkResponseItem> bulkInsert(String indexName, List<Object> objects) throws Exception {
+        ElasticsearchClient elasticsearchClient = ElasticSearchClientPool.getClient();
+        List<BulkOperation> bulkOperations = new ArrayList<>();//创建BulkOperation列表准备批量插入doc
+        //将user中id作为es id，也可不指定id es会自动生成id
+        objects.forEach(doc -> bulkOperations
+                .add(BulkOperation
+                        .of(bulk -> bulk.index(docs -> docs
+                                .document(doc)))
+                )
+        );
+        BulkResponse bulkResponse = elasticsearchClient
+                .bulk(bulk -> bulk
+                        .index(indexName)
+                        .operations(bulkOperations)
+                );
+        List<BulkResponseItem> items = bulkResponse.items();
+        ElasticSearchClientPool.backReturnClient(elasticsearchClient);
+        return items;
+    }
+
+    /**
+     * bulk批量插入 指定id
+     *
+     * @param indexName
+     * @param ids
+     * @param objects
+     * @return
+     * @throws Exception
+     */
+    public List<BulkResponseItem> bulkInsert(String indexName, List<String> ids, List<Object> objects) throws Exception {
+        ElasticsearchClient elasticsearchClient = ElasticSearchClientPool.getClient();
+        List<BulkOperation> bulkOperations = new ArrayList<>(); //创建BulkOperation列表准备批量插入doc
+        for (int i = 0; i < objects.size(); i++) {   //将id作为es id，也可不指定id es会自动生成id
+            int finalI = i;
+            bulkOperations.add(BulkOperation
+                    .of(bulk -> bulk
+                            .index(index -> index
+                                    .id(ids.get(finalI))
+                                    .document(objects.get(finalI)
+                                    )
+                            )
+                    )
+            );
+        }
+        BulkResponse bulk = elasticsearchClient
+                .bulk(bul -> bul
+                        .index(indexName)
+                        .operations(bulkOperations)
+                );
+        List<BulkResponseItem> items = bulk.items();
+        ElasticSearchClientPool.backReturnClient(elasticsearchClient);
+        return items;
+    }
+
+
+    /**
+     * bulk批量删除文档记录
+     *
+     * @param indexName
+     * @param ids
+     * @return List<BulkResponseItem>
+     * @throws Exception
+     */
+    public List<BulkResponseItem> delDocByIds(String indexName, List<String> ids) throws Exception {
+        ElasticsearchClient elasticsearchClient = ElasticSearchClientPool.getClient();
+
+        List<BulkOperation> bulkOperations = new ArrayList<>();// 构建批量操作对象BulkOperation的集合
+
+        for (int i = 0; i < ids.size(); i++) {    // 向集合中添加需要删除的文档id信息
+            int finalI = i;
+            bulkOperations.add(BulkOperation.of(b -> b
+                    .delete((del -> del
+                            .index(indexName)
+                            .id(ids.get(finalI)
+                            )
+                    ))
+            ));
+        }
+        // 调用客户端的bulk方法，并获取批量操作响应结果
+        BulkResponse response = elasticsearchClient
+                .bulk(bul -> bul
+                        .index(indexName)
+                        .operations(bulkOperations));
+        return response.items();
+    }
+
+
+    /**
+     * bulk批量更新数据
+     *
+     * @param indexName
+     * @param ids
+     * @param objects
+     * @return List<BulkResponseItem> items
+     * @throws Exception
+     */
+    public List<BulkResponseItem> bulkUpdate(String indexName, List<String> ids, List<Object> objects) throws Exception {
+        ElasticsearchClient elasticsearchClient = ElasticSearchClientPool.getClient();
+        //创建BulkOperation列表准备批量插入doc
+        List<BulkOperation> bulkOperations = new ArrayList<>();
+        //将id作为es id，也可不指定id es会自动生成id
+        for (int i = 0; i < objects.size(); i++) {
+            int finalI = i;
+            //TODO 没测试不知对不对
+            bulkOperations.add(BulkOperation.of(b -> b
+                    .update(u -> u
+                            .index(indexName)
+                            .id(ids.get(finalI))
+                            .action(a -> a
+                                    .doc(objects.get(finalI))
+                            ))
+            ));
+        }
+        BulkResponse bulk = elasticsearchClient
+                .bulk(bul -> bul
+                        .index(indexName)
+                        .operations(bulkOperations));
+        List<BulkResponseItem> items = bulk.items();
+        ElasticSearchClientPool.backReturnClient(elasticsearchClient);
+        return items;
     }
 
 

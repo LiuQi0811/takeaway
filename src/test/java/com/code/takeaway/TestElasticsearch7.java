@@ -6,6 +6,7 @@ import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.Transport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.code.takeaway.pool.ElasticSearchClientPool;
+import com.code.takeaway.utils.CommonInterfaceMethodsEs8;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
@@ -41,6 +42,12 @@ public class TestElasticsearch7 {
         Boolean acknowledged = client.indices().create(val -> val.index("user")).acknowledged();
         log.info("创建索引返回状态 {}",acknowledged);
         ElasticSearchClientPool.backReturnClient(client);//归还连接对象
+    }
+
+    @Test
+    public void testDelete() throws Exception {
+        CommonInterfaceMethodsEs8 commonInterfaceMethodsEs8 = new CommonInterfaceMethodsEs8();
+        commonInterfaceMethodsEs8.deleteIndex("user");
     }
 
 
