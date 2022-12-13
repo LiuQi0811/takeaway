@@ -54,8 +54,8 @@ public class TestElasticsearch7 {
         CommonInterfaceMethodsEs8 commonInterfaceMethodsEs8 = new CommonInterfaceMethodsEs8();
         List<IndicesRecord> allIndex = commonInterfaceMethodsEs8.getAllIndex();
         log.error(" 全部索引信息 {}", JSON.toJSON(allIndex));
-        Map<String, IndexState> user = commonInterfaceMethodsEs8.getIndexInfo("user");
-        log.error(" 根据索引名称 获取 索引信息 {}", JSON.toJSON(allIndex));
+        Map<String, IndexState> user = commonInterfaceMethodsEs8.getIndexInfo("lgx");
+        log.error(" 根据索引名称 获取 索引信息 {}", JSON.toJSON(user));
     }
 
 

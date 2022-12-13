@@ -37,7 +37,7 @@ public class ElasticSearchClientPoolFactory implements PooledObjectFactory<Elast
     @Override
     public PooledObject<ElasticsearchClient> makeObject() throws Exception {
 //        String esServerHost = "ip:port,ip:port"; //定义地址格式
-        String esServerHost = "172.16.100.26:9200"; //定义地址格式
+        String esServerHost = "192.168.0.118:9200"; //定义地址格式
         List<HttpHost> httpHosts = new ArrayList<>(); //定义地址空列表
         List<String> ips = Arrays.asList(esServerHost.split(","));
         log.info("IPS {}",ips);
