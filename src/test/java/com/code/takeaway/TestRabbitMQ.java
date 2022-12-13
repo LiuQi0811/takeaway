@@ -15,7 +15,7 @@ import java.util.HashMap;
  * @version 1.0
  * @data 2022/12/8 14:14
  */
-@SpringBootTest(classes = TakeawayApplication.class)
+//@SpringBootTest(classes = TakeawayApplication.class)
 @Slf4j
 @RunWith(SpringRunner.class)
 public class TestRabbitMQ {

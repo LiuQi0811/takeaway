@@ -13,7 +13,7 @@ spring:
 #  RabbitMQ 基础配置
   rabbitmq:
     host: 172.16.100.26 # 地址
-    port: 5672 # 端口号
+    port: 5673 # 端口号
     username: guest #用户名
     password: guest #密码
     virtual-host: /
