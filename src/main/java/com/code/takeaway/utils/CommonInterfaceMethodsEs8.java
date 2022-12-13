@@ -5,16 +5,21 @@ import co.elastic.clients.elasticsearch._types.mapping.IntegerNumberProperty;
 import co.elastic.clients.elasticsearch._types.mapping.Property;
 import co.elastic.clients.elasticsearch._types.mapping.TextProperty;
 import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
-import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
-import co.elastic.clients.elasticsearch.indices.GetIndexResponse;
-import co.elastic.clients.elasticsearch.indices.IndexState;
+import co.elastic.clients.elasticsearch.core.IndexResponse;
+import co.elastic.clients.elasticsearch.core.UpdateResponse;
+import co.elastic.clients.elasticsearch.indices.*;
+import co.elastic.clients.elasticsearch.indices.get_alias.IndexAliases;
 import com.code.takeaway.pool.ElasticSearchClientPool;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author LiuQi
@@ -175,5 +180,183 @@ public class CommonInterfaceMethodsEs8 {
         ElasticSearchClientPool.backReturnClient(elasticsearchClient); //归还线程池
         return indicesRecords;
     }
+
+
+    /**
+     * 添加别名
+     *
+     * @param indexName 索引名称
+     * @param aliasName 别名名称
+     * @return
+     * @throws IOException
+     */
+    public Boolean addAliases(List<String> indexName, String aliasName) throws Exception {
+        ElasticsearchClient elasticsearchClient = ElasticSearchClientPool.getClient();
+        UpdateAliasesResponse updateAliasesResponse = elasticsearchClient
+                .indices()
+                .updateAliases(update -> update
+                        .actions(action -> action
+                                .add(add -> add
+                                        .indices(indexName)
+                                        .alias(aliasName)
+                                )
+                        )
+                );
+        ElasticSearchClientPool.backReturnClient(elasticsearchClient);
+        boolean acknowledged = updateAliasesResponse.acknowledged();
+        log.info("添加别名  返回状态 {}", acknowledged);
+        return acknowledged;
+    }
+
+    /**
+     * 移除别名
+     *
+     * @param indexName
+     * @param aliasName
+     * @throws IOException
+     */
+    public Boolean removeAliases(List<String> indexName, String aliasName) throws Exception {
+        ElasticsearchClient elasticsearchClient = ElasticSearchClientPool.getClient();
+        DeleteAliasResponse deleteAliasResponse = elasticsearchClient
+                .indices()
+                .deleteAlias(del -> del
+                        .index(indexName)
+                        .name(aliasName)
+                );
+        ElasticSearchClientPool.backReturnClient(elasticsearchClient);
+        boolean acknowledged = deleteAliasResponse.acknowledged();
+        log.info("移除别名  返回状态 {}", acknowledged);
+        return acknowledged;
+    }
+
+
+    /**
+     * 重命名别名，解除旧索引的别名，填加新索引的别名
+     *
+     * @param indexName
+     * @param newAliasName
+     * @param oldAliasName
+     * @return
+     * @throws Exception
+     */
+    public Boolean renameAliases(List<String> indexName, String newAliasName, String oldAliasName) throws Exception {
+        ElasticsearchClient elasticsearchClient = ElasticSearchClientPool.getClient();
+        DeleteAliasResponse deleteAliasResponse = null;
+        if (StringUtils.isNotBlank(oldAliasName)) {
+            deleteAliasResponse = elasticsearchClient.indices().deleteAlias(del -> del
+                    .index(indexName)
+                    .name(oldAliasName)
+            ); //删除别名
+        }
+        if (!deleteAliasResponse.acknowledged()) return false;
+        UpdateAliasesResponse updateAliasesResponse = null;
+        if (StringUtils.isNotBlank(oldAliasName)) {
+            updateAliasesResponse = elasticsearchClient.indices().updateAliases(update -> update.actions(
+                            action -> action.add(add -> add
+                                    .indices(indexName)
+                                    .alias(newAliasName))
+                    )
+            ); //修改别名
+        }
+        ElasticSearchClientPool.backReturnClient(elasticsearchClient);
+        boolean acknowledged = updateAliasesResponse.acknowledged();
+        log.info("重命名别名  返回状态 {}", acknowledged);
+        return acknowledged;
+    }
+
+    /**
+     * 根据别名查询索引信息
+     *
+     * @param aliasName
+     * @return
+     * @throws Exception
+     */
+    public Map<String, IndexAliases> getIndexInfoByAlias(String aliasName) throws Exception {
+        ElasticsearchClient elasticsearchClient = ElasticSearchClientPool.getClient();
+        GetAliasResponse getAliasResponse = elasticsearchClient.indices().getAlias(
+                alias -> alias.name(aliasName)
+        );
+        Map<String, IndexAliases> result = getAliasResponse.result();
+        ElasticSearchClientPool.backReturnClient(elasticsearchClient);
+        return result;
+    }
+
+    /**
+     * 根据别名查询索引名称
+     *
+     * @param aliasName
+     * @return
+     * @throws Exception
+     */
+    public List<String> getIndexNameByAliasName(String aliasName) throws Exception {
+        ElasticsearchClient elasticsearchClient = ElasticSearchClientPool.getClient();
+        GetAliasResponse getAliasResponse = elasticsearchClient.indices().getAlias(
+                alias -> alias.name(aliasName)
+        );
+        Map<String, IndexAliases> result = getAliasResponse.result();
+        List<String> indexList = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(result)) {
+            indexList = result.keySet().stream().collect(Collectors.toList());
+        }
+        ElasticSearchClientPool.backReturnClient(elasticsearchClient);
+
+        return indexList;
+    }
+
+    /**
+     * 新增文档信息
+     * @param indexName
+     * @param o
+     * @return
+     * @throws Exception
+     */
+    public Long createDocument(String indexName,Object o) throws Exception
+    {
+        ElasticsearchClient elasticsearchClient = ElasticSearchClientPool.getClient();
+        IndexResponse indexResponse = elasticsearchClient.index(item -> item.index(indexName).document(o));
+        long version = indexResponse.version();
+        ElasticSearchClientPool.backReturnClient(elasticsearchClient);
+        return  version;
+    }
+
+    /**
+     *  新增文档信息 指定id
+     * @param indexName
+     * @param id
+     * @param o
+     * @return
+     * @throws Exception
+     */
+    public Long createDocument(String indexName,String id,Object o) throws Exception {
+        ElasticsearchClient elasticsearchClient = ElasticSearchClientPool.getClient();
+        IndexResponse indexResponse = elasticsearchClient
+                .index(item -> item
+                        .index(indexName)
+                        .id(id)
+                        .document(o));
+        long version = indexResponse.version();
+        ElasticSearchClientPool.backReturnClient(elasticsearchClient);
+        return  version;
+    }
+
+    /**
+     * 修改文档自定义属性
+     * @param indexName
+     * @param id
+     * @param o
+     * @return
+     * @throws Exception
+     */
+    public Long updateDocument(String indexName,String id,Object o) throws Exception{
+        ElasticsearchClient elasticsearchClient = ElasticSearchClientPool.getClient();
+        UpdateResponse<Object> updateResponse = elasticsearchClient.update(x -> x
+                .index(indexName)
+                .id(id)
+                .doc(o), Object.class);
+        long version = updateResponse.version();
+        ElasticSearchClientPool.backReturnClient(elasticsearchClient);
+        return  version;
+    }
+
 
 }
