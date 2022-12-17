@@ -2,11 +2,13 @@ package com.code.takeaway;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.mapping.*;
+import co.elastic.clients.elasticsearch.core.DeleteResponse;
 import co.elastic.clients.elasticsearch.core.GetResponse;
 import co.elastic.clients.elasticsearch.indices.*;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.code.takeaway.classes.ClassesCollection;
 import com.code.takeaway.entity.Hotel;
 import com.code.takeaway.entity.HotelDoc;
@@ -22,7 +24,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.code.takeaway.es.constant.HotelConstants.MAPPING_TEMPLATE;
 
@@ -208,6 +212,57 @@ public class TestElasticsearch {
          log.info("根据指定的ID 索引名 查询文档信息  {}",hotelDoc);
 
     }
+
+    /**
+     * 根据 索引名 指定的id 修改文档
+     */
+    @Test
+    public void updateDocumentInfoById(){
+        //#局部修改文档
+        //POST /hotel/_doc/60223
+        //{
+        //  "doc": {
+        //    "price":"3688",
+        //    "starName":"六星级"
+        //  }
+        //}
+        RestClient restClient = RestClient.builder(new HttpHost(host,9200)).build();
+        ElasticsearchTransport transport = new RestClientTransport(restClient,new JacksonJsonpMapper());
+        ElasticsearchClient elasticsearchClient = new ElasticsearchClient(transport);
+        Map<String,Object> map =new HashMap<>();
+        map.put("price","3688");
+        map.put("starName","六星级");
+        new ClassesCollection<HotelDoc>().updateDocumentById(elasticsearchClient, INDEX_HOTEL, String.valueOf(60223),map, HotelDoc.class);
+    }
+
+    /**
+     * 根据 索引名 指定的id 删除文档
+     * @throws IOException
+     */
+    @Test
+    public void  deleteDocumentInfoById() throws IOException {
+        RestClient restClient = RestClient.builder(new HttpHost(host,9200)).build();
+        ElasticsearchTransport transport = new RestClientTransport(restClient,new JacksonJsonpMapper());
+        ElasticsearchClient elasticsearchClient = new ElasticsearchClient(transport);
+        elasticsearchClient.delete(val -> val.index(INDEX_HOTEL).id(String.valueOf(60223)));
+    }
+
+    /**
+     * 批量导入文档 数据库全部数据
+     */
+    @Test
+    public void batchImportDocumentBuild(){
+        RestClient restClient = RestClient.builder(new HttpHost(host,9200)).build();
+        ElasticsearchTransport transport = new RestClientTransport(restClient,new JacksonJsonpMapper());
+        ElasticsearchClient elasticsearchClient = new ElasticsearchClient(transport);
+        //获取数据库数据
+        List<Hotel> hotels = hotelMapper.selectList(new QueryWrapper<Hotel>());
+        // 数据转换
+        List<HotelDoc> hotelDocs = hotels.stream().map(HotelDoc::new).collect(Collectors.toList());
+        new ClassesCollection<>().batchImportDocumentBuild(elasticsearchClient,INDEX_HOTEL,hotelDocs);
+
+    }
+
 
 
 

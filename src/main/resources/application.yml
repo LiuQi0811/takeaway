@@ -6,16 +6,16 @@ spring:
   datasource:
     druid:
       driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://localhost:3306/takeaway?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
-      username: takeaway
-      password: 5nSX2tEEM6fD3AKX
+      url: jdbc:mysql://localhost:3306/hotel?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+      username: root
+      password: root0811
 
 #  RabbitMQ 基础配置
   rabbitmq:
-    host: 172.16.100.26 # 地址
-    port: 5673 # 端口号
-    username: guest #用户名
-    password: guest #密码
+    host: 192.168.0.118 # 地址
+    port: 5672 # 端口号
+    username: admin #用户名
+    password: admin #密码
     virtual-host: /
     listener:
       simple:
